@@ -13,7 +13,7 @@
 #########################
 # Veri Seti
 #########################
-#Veri seti müşterilerin aldıkları servislerden ve bu servislerin kategorilerinden oluşmaktadır.
+# Veri seti müşterilerin aldıkları servislerden ve bu servislerin kategorilerinden oluşmaktadır.
 # Alınan her hizmetin tarih ve saat bilgisini içermektedir.
 
 # UserId: Müşteri numarası
@@ -32,13 +32,16 @@ from mlxtend.frequent_patterns import apriori, association_rules
 # GÖREV 1: Veriyi Hazırlama
 #########################
 
-# Adım 1: armut_data.csv dosyasınız okutunuz.
-df_ = pd.read_csv("rC:\Users\user\OneDrive\Masaüstü\Miuul\Tekrar\10.10.25 tekrar\Modül_4_casestudies\Case Study - 1\armut_data.csv)
+# Adım 1: armut_data.csv dosyasınız okutalım ve veri seti hakkında bilgi alalım.
+
+df_ = pd.read_csv("armut_data.csv")
 df = df_.copy()
 df.head()
 
 # Adım 2: ServisID her bir CategoryID özelinde farklı bir hizmeti temsil etmektedir.
-# ServiceID ve CategoryID'yi "_" ile birleştirerek hizmetleri temsil edecek yeni bir değişken oluşturunuz.
+# ServiceID ve CategoryID'yi "_" ile birleştirerek hizmetleri temsil edecek yeni bir değişken oluşturalım.
+# (Örnek: 9_4 hizmeti CategoryID'si 9 olan kategorideki 4 numaralı servisi ifade eder.)
+
 df["Hizmet"] = [str(row[1]) + "_" + str(row[2]) for row in df.values]
 df.head()
 
@@ -47,8 +50,9 @@ df.head()
 # Association Rule Learning uygulayabilmek için bir sepet (fatura vb.) tanımı oluşturulması gerekmektedir.
 # Burada sepet tanımı her bir müşterinin aylık aldığı hizmetlerdir. Örneğin; 7256 id'li müşteri 2017'in 8.ayında aldığı 9_4, 46_4 hizmetleri bir sepeti;
 # 2017’in 10.ayında aldığı  9_4, 38_4  hizmetleri başka bir sepeti ifade etmektedir. Sepetleri unique bir ID ile tanımlanması gerekmektedir.
-# Bunun için öncelikle sadece yıl ve ay içeren yeni bir date değişkeni oluşturunuz. UserID ve yeni oluşturduğunuz date değişkenini "_"
-# ile birleştirirek ID adında yeni bir değişkene atayınız.
+# Bunun için öncelikle sadece yıl ve ay içeren yeni bir date değişkeni oluşturalım. UserID ve yeni oluşturduğumuz date değişkenini "_"
+# ile birleştirirek ID adında yeni bir değişkene atayalım. Bu ID her müşterinin aylık aldığı hizmetleri ifade edecektir.
+# Örneğin; 7256_2017-08 id'si 7256 id'li müşterinin 2017'in 8.ayında aldığı hizmetleri ifade edecektir.
 
 df["CreateDate"] = pd.to_datetime(df["CreateDate"])
 df.head()
@@ -61,10 +65,11 @@ df[df["UserId"] == 7256 ]
 
 
 #########################
-# GÖREV 2: Birliktelik Kuralları Üretiniz
+# GÖREV 2: Birliktelik Kuralları Üretelim
 #########################
 
-# Adım 1: Aşağıdaki gibi sepet hizmet pivot table’i oluşturunuz.
+# Adım 1: Aşağıdaki gibi sepet hizmet pivot table’i oluşturalım.
+# SepetID'ler index'te, Hizmetler ise kolonlarda olsun. Değerler ise hizmetlerin sepetlerde alınıp alınmadığını ifade etsin. (Alındı ise 1, alınmadı ise 0 değeri alsın.)
 
 # Hizmet         0_8  10_9  11_11  12_7  13_11  14_7  15_1  16_8  17_5  18_4..
 # SepetID
@@ -78,13 +83,15 @@ invoice_product_df = df.groupby(['SepetID', 'Hizmet'])['Hizmet'].count().unstack
 invoice_product_df.head()
 
 
-# Adım 2: Birliktelik kurallarını oluşturunuz.
+# Adım 2: Birliktelik kurallarını oluşturalım.
+
 frequent_itemsets = apriori(invoice_product_df, min_support=0.01, use_colnames=True)
 rules = association_rules(frequent_itemsets, metric="support", min_threshold=0.01)
 rules.head()
 
 
-#Adım 3: arl_recommender fonksiyonunu kullanarak en son 2_0 hizmetini alan bir kullanıcıya hizmet önerisinde bulununuz.
+#Adım 3: arl_recommender fonksiyonunu kullanarak en son 2_0 hizmetini alan bir kullanıcıya hizmet önerisinde bulunalım.
+# Arl_recommender fonksiyonu kuralları lift değerine göre sıralayarak öneri yapmaktadır. En yüksek lift değerine sahip ilk ürünü öneri olarak getirecektir.
 
 def arl_recommender(rules_df, product_id, rec_count=1):
     sorted_rules = rules_df.sort_values("lift", ascending=False)
